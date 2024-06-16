@@ -1,51 +1,54 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { NodejsFunction, NodejsFunctionProps } from "aws-cdk-lib/aws-lambda-nodejs";
-import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
+import {
+  Function,
+  Runtime,
+  Code,
+} from "aws-cdk-lib/aws-lambda";
+import {
+  LambdaIntegration,
+  RestApi,
+  Cors,
+} from "aws-cdk-lib/aws-apigateway";
 
-export class ProductServiceStack extends cdk.Stack {
+export class ProductServiceStackGarnichApp extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-  
-    const commonProps: Partial<NodejsFunctionProps> =  {
-      runtime: cdk.aws_lambda.Runtime.NODEJS_20_X,
-      environment: {
-        PRODUCT_AWS_REGION: process.env.REGION!,
+    const getProductsList = new Function(
+      this,
+      "GetProductsListHandler",
+      {
+        runtime: Runtime.NODEJS_20_X,
+        code: Code.fromAsset('lambda'),
+        handler: "getProductList.handler",
       }
-    }
+    );
 
-    const getProductsList = new NodejsFunction(this, 'GetProductsListLambda', {
-      ...commonProps,
-      entry: 'handlers/getProductsList.ts',
-      functionName: 'getProductsList',
-    });
-
-    const getProductById = new NodejsFunction(this, 'GetProductByIdLambda', {
-      ...commonProps,
-      entry: 'handlers/getProductById.ts',
-      functionName: 'getProductById',
-    });
-
-    const apiGateway = new cdk.aws_apigatewayv2.HttpApi(this, 'GetProductsListApi', {
-      apiName: 'GetProductsListApi',
-      corsPreflight: {
-        allowHeaders: ['*'],
-        allowOrigins: ['*'],
-        allowMethods: [cdk.aws_apigatewayv2.CorsHttpMethod.GET],
+    const getProductById = new Function(
+      this,
+      "GetProductByIdHandler",
+      {
+        runtime: Runtime.NODEJS_20_X,
+        code: Code.fromAsset('lambda'),
+        handler: "getProductsById.handler",
       }
+    );
+
+    const api = new RestApi(this, "ProductService", {
+      restApiName: "ProductService",
+      defaultCorsPreflightOptions: {
+        allowOrigins: Cors.ALL_ORIGINS,
+        allowMethods: Cors.ALL_METHODS,
+      },
     });
 
-    apiGateway.addRoutes({
-      path: '/products',
-      methods: [cdk.aws_apigatewayv2.HttpMethod.GET],
-      integration: new HttpLambdaIntegration('GetProductsListIntegration', getProductsList),
-    });
+    const productsPath = api.root.addResource("products");
 
-    apiGateway.addRoutes({
-      path: '/products/{productId}',
-      methods: [cdk.aws_apigatewayv2.HttpMethod.GET],
-      integration: new HttpLambdaIntegration('GetProductByIdIntegration', getProductById),
-    });
+    productsPath.addMethod("GET", new LambdaIntegration(getProductsList));
+
+    const productByIdPath = productsPath.addResource("{id}");
+
+    productByIdPath.addMethod("GET", new LambdaIntegration(getProductById));
   }
 }

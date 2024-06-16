@@ -1,6 +1,6 @@
 import  { IProduct } from '../types';
 
-export const products: IProduct[] = [
+const products: IProduct[] = [
     {
       description: "Short Product Description1",
       id: "7567ec4b-b10c-48c5-9345-fc73c48a80aa",
@@ -38,3 +38,6 @@ export const products: IProduct[] = [
       title: "ProductName",
     },
   ];
+
+  export default products;
+  
