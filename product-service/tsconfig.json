@@ -28,7 +28,4 @@
     "node_modules",
     "cdk.out"
   ],
-  "paths": {
-    "types/*": [ "./types/*" ],
-  },
 }
