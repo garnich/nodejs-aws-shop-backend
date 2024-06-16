@@ -19,5 +19,11 @@ export class ProductServiceStack extends cdk.Stack {
       entry: 'handlers/getProductsList.ts',
       functionName: 'getProductsList',
     });
+
+    const getProductById = new NodejsFunction(this, 'GetProductByIdLambda', {
+      ...commonProps,
+      entry: 'handlers/getProductById.ts',
+      functionName: 'getProductById',
+    });
   }
 }
