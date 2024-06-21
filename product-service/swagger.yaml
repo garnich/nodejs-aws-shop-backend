@@ -1,0 +1,80 @@
+openapi: 3.0.0
+info:
+  title: Products API
+  version: 1.0.0
+  description: Documentation for the Products-service
+servers:
+  - url: https://0jikk5cv5i.execute-api.us-west-2.amazonaws.com/prod/
+    variables:
+      restapi_id:
+        default: v1
+      region:
+        default: us-west-2
+      stage:
+        default: dev
+paths:
+  /products:
+    get:
+      summary: Get products list
+      operationId: getProductsList
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+  /products/{id}:
+    get:
+      summary: Get product by ID
+      operationId: getProductsById
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The product ID
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: NOT found. Product with id 111 does not exist.
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        price:
+          type: number
+        count:
+          type: integer
+        imgUrl:
+          type: string
+          nullable: true
+      required:
+        - id
+        - title
+        - price
+        - count
