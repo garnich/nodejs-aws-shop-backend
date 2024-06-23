@@ -11,9 +11,19 @@ const client = new DynamoDBClient({});
 const documentClient = DynamoDBDocumentClient.from(client);
 
 export const handler = async (event: any) => {
+    console.log('createProuct event: ', event);
+
   try {
     const body = JSON.parse(event.body || "{}");
     const { title, description, price, count } = body;
+
+    if (typeof body?.title === 'string' || typeof body?.description === 'string' || typeof body?.price === 'number' || typeof body?.count === 'number') {
+        return {
+          statusCode: 400,
+          headers,
+          body: 'Validation Error request should contain title, description as [string] and price, count as [number]',
+        };
+      }
 
     const id = uuid();
 

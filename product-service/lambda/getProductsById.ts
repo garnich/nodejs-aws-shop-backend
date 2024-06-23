@@ -5,6 +5,8 @@ const client = new DynamoDBClient({});
 const documentClient = DynamoDBDocumentClient.from(client);
 
 export const handler = async (event: any) => {
+    console.log('getProductsById event: ', event);
+
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': '*',
