@@ -62,8 +62,18 @@ export class ProductServiceStackGarnichApp extends cdk.Stack {
       }
     });
 
+    const createProduct = new Function(this, 'CreateProductHandler', {
+      runtime: Runtime.NODEJS_20_X,
+      code: Code.fromAsset('lambda'),
+      handler: 'createProduct.handler',
+      environment: {
+        PRODUCTS_TABLE: productsTable.tableName,
+      }
+    });
+
     productsTable.grantReadWriteData(fillTablesLambda);
     stocksTable.grantReadWriteData(fillTablesLambda);
+    productsTable.grantReadWriteData(createProduct);
 
     const api = new RestApi(this, "ProductService", {
       restApiName: "ProductService",
@@ -80,5 +90,7 @@ export class ProductServiceStackGarnichApp extends cdk.Stack {
     const productByIdPath = productsPath.addResource("{id}");
 
     productByIdPath.addMethod("GET", new LambdaIntegration(getProductById));
+
+    productsPath.addMethod('POST', new LambdaIntegration(createProduct));
   }
 }
