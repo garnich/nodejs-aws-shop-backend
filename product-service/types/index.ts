@@ -4,3 +4,8 @@ export interface IProduct {
         description: string;
         price: number;
 };
+
+export interface ICount {
+        product_id: string;
+        count: number;
+};

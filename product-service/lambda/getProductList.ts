@@ -1,4 +1,4 @@
-import products from './products';
+import { products } from './products';
 
 export const handler = async () => {
     try {

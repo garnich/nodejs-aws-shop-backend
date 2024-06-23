@@ -1,9 +1,9 @@
-import products from './products';
+import { products } from './products';
 import { IProduct } from '../types';
 
 export const handler = async (event: any) => {
     try {
-        const id = event.pathParameters.productId;
+        const id = event.pathParameters.id;
         const product = products.find((product: IProduct) => product.id === id);
 
         if (!product) {
