@@ -17,11 +17,11 @@ export const handler = async (event: any) => {
     const body = JSON.parse(event.body || "{}");
     const { title, description, price, count } = body;
 
-    if (typeof body?.title === 'string' || typeof body?.description === 'string' || typeof body?.price === 'number' || typeof body?.count === 'number') {
+    if (typeof title !== 'string' || typeof description !== 'string' || typeof price !== 'number' || typeof count !== 'number') {
         return {
           statusCode: 400,
           headers,
-          body: 'Validation Error request should contain title, description as [string] and price, count as [number]',
+          body: 'Validation Error request should contain title, description as STRING and price, count as NUMBER',
         };
       }
 

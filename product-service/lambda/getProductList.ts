@@ -4,7 +4,7 @@ import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 const client = new DynamoDBClient({});
 const documentClient = DynamoDBDocumentClient.from(client);
 
-export const handler = async () => {
+export const handler = async (event: any) => {
     console.log('getProductList event: ', event);
 
     const headers = {
