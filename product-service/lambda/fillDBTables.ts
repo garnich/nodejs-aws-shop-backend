@@ -23,7 +23,6 @@ export const handler = async (event: any) => {
     });
 
     const productsTableResponse = await documentClient.send(fillProductsTable);
-    console.log("!!!!!!!!!!!!productsTableResponse", productsTableResponse);
 
     const stocksTableName = process.env.DB_STOCK;
 
