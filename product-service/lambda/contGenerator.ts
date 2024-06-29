@@ -1,0 +1,1 @@
+export const countGenerator = (num: number = 1000):number => Math.floor(Math.random() * 1000) + 1;

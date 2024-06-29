@@ -10,10 +10,25 @@ import {
   RestApi,
   Cors,
 } from "aws-cdk-lib/aws-apigateway";
+import { Table, AttributeType } from 'aws-cdk-lib/aws-dynamodb';
 
 export class ProductServiceStackGarnichApp extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    const productsTable = new Table(
+      this,
+      'Products', {
+      partitionKey: { name: 'title', type: AttributeType.STRING },
+      tableName: process.env.DB_PRODUCTS,
+    });
+
+    const stocksTable = new Table(
+      this,
+      'Stock', {
+      partitionKey: { name: 'product_id', type: AttributeType.STRING },
+      tableName: process.env.DB_STOCK,
+    });
 
     const getProductsList = new Function(
       this,
@@ -35,6 +50,31 @@ export class ProductServiceStackGarnichApp extends cdk.Stack {
       }
     );
 
+    const fillTablesLambda = new Function(
+      this,
+      "FillTablesLambda", {
+      runtime: Runtime.NODEJS_20_X,
+      code: Code.fromAsset('lambda'),
+      handler: 'fillDBTables.handler',
+      environment: {
+        PRODUCTS_TABLE: productsTable.tableName,
+        STOCKS_TABLE: stocksTable.tableName,
+      }
+    });
+
+    const createProduct = new Function(this, 'CreateProductHandler', {
+      runtime: Runtime.NODEJS_20_X,
+      code: Code.fromAsset('lambda'),
+      handler: 'createProduct.handler',
+      environment: {
+        PRODUCTS_TABLE: productsTable.tableName,
+      }
+    });
+
+    productsTable.grantReadWriteData(fillTablesLambda);
+    stocksTable.grantReadWriteData(fillTablesLambda);
+    productsTable.grantReadWriteData(createProduct);
+
     const api = new RestApi(this, "ProductService", {
       restApiName: "ProductService",
       defaultCorsPreflightOptions: {
@@ -50,5 +90,7 @@ export class ProductServiceStackGarnichApp extends cdk.Stack {
     const productByIdPath = productsPath.addResource("{id}");
 
     productByIdPath.addMethod("GET", new LambdaIntegration(getProductById));
+
+    productsPath.addMethod('POST', new LambdaIntegration(createProduct));
   }
 }

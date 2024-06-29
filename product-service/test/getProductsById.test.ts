@@ -1,4 +1,4 @@
-import products from '../lambda/products';
+import { products } from '../lambda/products';
 import { handler } from '../lambda/getProductsById';
 
 describe('GET /api/products/:id', () => {
