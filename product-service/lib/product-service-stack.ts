@@ -11,7 +11,9 @@ import {
   Cors,
 } from "aws-cdk-lib/aws-apigateway";
 import { Table, AttributeType } from 'aws-cdk-lib/aws-dynamodb';
+import { EmailSubscription } from "aws-cdk-lib/aws-sns-subscriptions";
 import { Queue } from "aws-cdk-lib/aws-sqs";
+import { FilterOrPolicy, SubscriptionFilter, Topic } from "aws-cdk-lib/aws-sns";
 import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 
 export class ProductServiceStackGarnichApp extends cdk.Stack {
@@ -96,6 +98,33 @@ export class ProductServiceStackGarnichApp extends cdk.Stack {
         batchSize: 5,
       })
     );
+
+
+    const createProductTopic = new Topic(this, "createProductTopic", {
+      topicName: "createProductTopic",
+    });
+
+    createProductTopic.addSubscription(
+      new EmailSubscription(process.env.EMAIL1 ?? 'garnich5092301@gmail.com', {
+        filterPolicyWithMessageBody: {
+          count: FilterOrPolicy.filter(
+            SubscriptionFilter.numericFilter({ greaterThanOrEqualTo: 3 })
+          ),
+        },
+      })
+    );
+
+    createProductTopic.addSubscription(
+      new EmailSubscription(process.env.EMAIL2 ?? 'garnich@tut.by', {
+        filterPolicyWithMessageBody: {
+          count: FilterOrPolicy.filter(
+            SubscriptionFilter.numericFilter({ lessThan: 3 })
+          ),
+        },
+      })
+    );
+
+    createProductTopic.grantPublish(catalogBatchProcess);
 
     productsTable.grantReadWriteData(fillTablesLambda);
     stocksTable.grantReadWriteData(fillTablesLambda);
