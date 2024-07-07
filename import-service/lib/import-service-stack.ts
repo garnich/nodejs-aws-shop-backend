@@ -16,7 +16,7 @@ import { Bucket, HttpMethods, EventType, BlockPublicAccess } from 'aws-cdk-lib/a
 import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 import { Queue } from "aws-cdk-lib/aws-sqs";
 
-const SQS_ARN = process.env.SQS_ARN! ?? 'arn:aws:sqs:us-west-2:111:name';
+const SQS_ARN = process.env.SQS_ARN! ?? '';
 
 export class ImportServiceStackGarnichApp extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {

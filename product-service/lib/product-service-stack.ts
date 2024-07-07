@@ -11,6 +11,8 @@ import {
   Cors,
 } from "aws-cdk-lib/aws-apigateway";
 import { Table, AttributeType } from 'aws-cdk-lib/aws-dynamodb';
+import { Queue } from "aws-cdk-lib/aws-sqs";
+import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 
 export class ProductServiceStackGarnichApp extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -70,6 +72,30 @@ export class ProductServiceStackGarnichApp extends cdk.Stack {
         PRODUCTS_TABLE: productsTable.tableName,
       }
     });
+
+    const catalogBatchProcess = new Function(
+      this,
+      "CatalogBatchProcessLambda", {
+      runtime: Runtime.NODEJS_20_X,
+      code: Code.fromAsset('lambda'),
+      handler: 'catalogBatchProcess.handler',
+      environment: {
+        PRODUCTS_TABLE: productsTable.tableName,
+        STOCKS_TABLE: stocksTable.tableName,
+      }
+    });
+
+    const catalogItemsQueue = new Queue(this, "catalogItemsQueue", {
+      queueName: "catalogItemsQueue",
+    });
+
+    catalogItemsQueue.grantConsumeMessages(catalogBatchProcess);
+
+    catalogBatchProcess.addEventSource(
+      new SqsEventSource(catalogItemsQueue, {
+        batchSize: 5,
+      })
+    );
 
     productsTable.grantReadWriteData(fillTablesLambda);
     stocksTable.grantReadWriteData(fillTablesLambda);
