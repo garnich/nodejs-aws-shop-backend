@@ -9,3 +9,7 @@ export interface ICount {
         product_id: string;
         count: number;
 };
+
+export interface IProductWithCount extends IProduct {
+        count: number;
+};

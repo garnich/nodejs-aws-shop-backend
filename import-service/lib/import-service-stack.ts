@@ -14,11 +14,14 @@ import {
 import { PolicyStatement, Effect } from 'aws-cdk-lib/aws-iam';
 import { Bucket, HttpMethods, EventType, BlockPublicAccess } from 'aws-cdk-lib/aws-s3';
 import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
+import { Queue } from "aws-cdk-lib/aws-sqs";
+
+const SQS_ARN = process.env.SQS_ARN! ?? '';
 
 export class ImportServiceStackGarnichApp extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
-  
+
       const bucket = new Bucket(this, "ProductImportBucket",
         {
       bucketName:  'garnich-import-service-bucket',
@@ -49,6 +52,7 @@ export class ImportServiceStackGarnichApp extends Stack {
         handler: 'importFileParser.handler',
         environment: {
           BUCKET_NAME: bucket.bucketName,
+          SQS_URL: process.env.SQS_URL ?? '',
         },
       });
 
@@ -77,6 +81,13 @@ export class ImportServiceStackGarnichApp extends Stack {
         },
       });
 
+    const catalogItemsQueue = Queue.fromQueueArn(
+      this,
+      "ImportFileQueue",
+      SQS_ARN,
+    );
+
+    catalogItemsQueue.grantSendMessages(importParserLambda);
 
     const importResource = api.root.addResource('import');
 

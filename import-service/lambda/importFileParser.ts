@@ -1,4 +1,5 @@
 import { S3Client, GetObjectCommand, CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { SendMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
 import { PassThrough, Readable } from 'stream';
 import csv from 'csv-parser';
 
@@ -8,18 +9,16 @@ const headers = {
 };
 
 const s3Client = new S3Client({});
+const sqsClient = new SQSClient({});
+const SQS_URL = process.env.SQS_URL ?? "";
 
 export const handler = async (event: any) => {
   console.log('EVENT: ', event);
 
   try {
     for (const record of event.Records) {
-      console.log('S3 RECORD -> ', record.s3);
-
       const bucketName = record.s3.bucket.name;
       const key = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '));
-
-      console.log('S3 RECORD KEY -> ', key);
 
       const getAndDeleteObjectCommandParams = { Bucket: bucketName, Key: key };
 
@@ -35,7 +34,13 @@ export const handler = async (event: any) => {
         data
           .pipe(new PassThrough())
           .pipe(csv())
-          .on('data', console.log)
+          .on("data", async (data: { [key: string]: string }) => {
+            const command = new SendMessageCommand({
+              QueueUrl: SQS_URL,
+              MessageBody: JSON.stringify(data),
+            });
+            await sqsClient.send(command);
+          })
           .on('error', (error: any) => reject(error))
           .on('end', async () => {
 
@@ -54,6 +59,11 @@ export const handler = async (event: any) => {
               new DeleteObjectCommand(getAndDeleteObjectCommandParams)
             );
             console.log('OBJECT DELETED -> DONE');
+
+            console.log(
+              'CSV file PARSED succesfully, each product sent to SQS and moved csv file from "uploaded" to "parsed" folder'
+            );
+
             resolve(null);
           });
       });
