@@ -10,13 +10,15 @@ import {
   LambdaIntegration,
   RestApi,
   Cors,
+  TokenAuthorizer,
 } from "aws-cdk-lib/aws-apigateway";
-import { PolicyStatement, Effect } from 'aws-cdk-lib/aws-iam';
+import { PolicyStatement, Effect, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Bucket, HttpMethods, EventType, BlockPublicAccess } from 'aws-cdk-lib/aws-s3';
 import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 import { Queue } from "aws-cdk-lib/aws-sqs";
 
 const SQS_ARN = process.env.SQS_ARN! ?? '';
+const AUTH_ARN = process.env.AUTH_ARN! ?? '';
 
 export class ImportServiceStackGarnichApp extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -91,7 +93,36 @@ export class ImportServiceStackGarnichApp extends Stack {
 
     const importResource = api.root.addResource('import');
 
-    importResource.addMethod('GET', new LambdaIntegration(importProductsLambda));
+    const basicAuthHandler = Function.fromFunctionArn(
+      this,
+      'basicAuthorizerHandler',
+      AUTH_ARN
+    );
+
+    const authRole = new Role(this, 'authRole', {
+      assumedBy: new ServicePrincipal('apigateway.amazonaws.com'),
+    });
+
+    authRole.addToPolicy(
+      new PolicyStatement({
+        actions: ['lambda:InvokeFunction'],
+        resources: [basicAuthHandler.functionArn],
+      }),
+    );
+
+    const tokenAuth = new TokenAuthorizer(this, 'tokenAuth', {
+      handler: basicAuthHandler,
+      assumeRole: authRole,
+    });
+
+    importResource.addMethod('GET', new LambdaIntegration(importProductsLambda), 
+    {
+      requestParameters: {
+        'method.request.header.Authorization': true,
+      },
+      authorizer: tokenAuth,
+    }
+  );
 
     bucket.addEventNotification(
       EventType.OBJECT_CREATED,
