@@ -1,47 +1,70 @@
 import fastify from 'fastify';
 import axios from 'axios';
+import cors from '@fastify/cors';
 import 'dotenv/config';
 
 const server = fastify({
     logger: true,
 });
 
+await server.register(cors, { origin: '*' });
+
 server.route({
-    method: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'],
+    method: ['GET', 'PUT', 'POST', 'DELETE', 'PATCH'],
     url: '/*',
     handler: (req, res) => {
-        const request = {
-            'originalUrl': req.originalUrl,
-            'method': req.method,
-            'body': req.body ?? null
+        const { originalUrl, method, body: data, headers } = req;
+
+        if (originalUrl === '/favicon.ico') {
+            return res.status(204).send();
         }
 
-        console.info( 'request', request);
+        const [path, querieParams] = req.originalUrl.split('?');
+        const serviceKey = path.split('/')[1];
+        const paramsObj = {};
+
+        if (querieParams) {
+          const params = new URLSearchParams(querieParams);
+          for (const [key, value] of params.entries()) {
+            paramsObj[key] = value;
+          }
+        }
+
+        if (serviceKey !== 'cart' && serviceKey !== 'product') {
+            return res.status(502).send({ error: 'Bad Gateway. Cannot process request' });
+          }
+
+        const apiHost = process.env[`${serviceKey}_api`.toUpperCase()];
+
+        let url = `${apiHost}/${serviceKey}s`;
+
+        if(paramsObj.id) {
+          url += `/${paramsObj.id}`
+        }
 
         axios({
-            url: 'https://test.com/test',
-            method: 'get',
-            params: {
-              userId: 111
-            },
-            headers: {
-              'Authorization': 'Bearer testToken'
-            },
+            url,
+            data,
+            method,
+            headers: { 'Authorization': headers.authorization },
             timeout: 3000,
             responseType: 'json'
-          }).then(resp => {
-            console.log('DATA', resp.data);
-          }).catch(error => {
-            console.error('API request error', error);
-          });
+          }).then((resp) => {
+            const { status, data } = resp;
 
-        res.send(request);
+            res.status(status).send(data);
+          }).catch((e) => {
+            const status = e?.response ? e?.response.status : 500;
+            const data = e?.response ? e?.response.data : 'Something went wrong...';
+
+            res.status(status).send(data)
+          });
   }
 });
 
 const servise = async () => {
     try {
-        await server.listen({ port: process.env.PORT || 3000 })
+        await server.listen({ port: process.env.PORT || 3125, host: '0.0.0.0' })
     } catch (e) {
         server.log.error(e);
         process.exit(1);
